@@ -1,0 +1,12 @@
+server:
+  address: 127.0.0.2
+  port: 8088
+student:
+  name: mountain-yaml-dev
+  age: 20
+  lesson: ["a", "b \n c"]
+  achievement: {"geogrophy": 88, "history": 97}
+  dog:
+    dogName: Jane
+    dogColor: gray
+#    dog-name:
