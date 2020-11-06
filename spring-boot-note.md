@@ -50,3 +50,7 @@ student:
 | SpEL               | 不支持                   | 支持       |
 | JSR303数据校验     | 支持                     | 不支持     |
 
+**SpEL**:  #{5*2} 结果为 10
+
+**JSR303**: @Email  || @AssertTrue || @Null 等注解验证
+

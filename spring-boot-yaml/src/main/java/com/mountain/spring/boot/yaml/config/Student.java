@@ -18,7 +18,7 @@ import java.util.Map;
 @Component
 @ConfigurationProperties(prefix = "student")
 public class Student {
-
+    
     private String name;
 
     private int age;
