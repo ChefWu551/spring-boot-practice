@@ -7,4 +7,5 @@ public class Dog {
     private String dogName;
 
     private String dogColor;
+
 }

@@ -2,7 +2,7 @@ server:
   address: 127.0.0.2
   port: 8088
 student:
-  name: mountain-yaml-prod
+  name: mountain-yaml-prod-${random.uuid}
   age: 20
 #  ""双引号内的内容表示，不转义，根据内容自动处理
 #  lesson: ["a", "b \n c"]
