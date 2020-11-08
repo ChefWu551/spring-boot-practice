@@ -136,6 +136,67 @@ a. **随机数**
 
 ${random.value}、${random.int}、${random.long}、${random.int(10)}
 
-b.占位符获取之前配置的值，如果没有可以指定默认值
+b.占位符获取之前配置的值，如果没有可以指定默认值 : ${perison.name:李四}
 
-${perison.name:李四}
+### 2. 自动配置原理
+
+​	springboot启动时候的时候加载主配置类，@EnableAutoConfiguration自动加载配置
+
+@EnableAutoConfiguration
+
+```java
+@Import(AutoConfigurationImportSelector.class)
+public @interface EnableAutoConfiguration {
+```
+
+```java
+protected AutoConfigurationEntry getAutoConfigurationEntry(AnnotationMetadata annotationMetadata) {
+   if (!isEnabled(annotationMetadata)) {
+      return EMPTY_ENTRY;
+   }
+   AnnotationAttributes attributes = getAttributes(annotationMetadata);
+   List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes);
+```
+
+```java
+protected List<String> getCandidateConfigurations(AnnotationMetadata metadata, AnnotationAttributes attributes) {
+   List<String> configurations = SpringFactoriesLoader.loadFactoryNames(getSpringFactoriesLoaderFactoryClass(),
+         getBeanClassLoader());
+   Assert.notEmpty(configurations, "No auto configuration classes found in META-INF/spring.factories. If you "
+         + "are using a custom packaging, make sure that file is correct.");
+   return configurations;
+}
+```
+
+```java
+public static List<String> loadFactoryNames(Class<?> factoryType, @Nullable ClassLoader classLoader) {
+   String factoryTypeName = factoryType.getName();
+   return loadSpringFactories(classLoader).getOrDefault(factoryTypeName, Collections.emptyList());
+}
+```
+
+```java
+public static final String FACTORIES_RESOURCE_LOCATION = "META-INF/spring.factories";
+
+private static Map<String, List<String>> loadSpringFactories(@Nullable ClassLoader classLoader) {
+   MultiValueMap<String, String> result = cache.get(classLoader);
+   if (result != null) {
+      return result;
+   }
+
+   try {
+       // 加载srping.facotries文件加入到容器中
+      Enumeration<URL> urls = (classLoader != null ?
+            classLoader.getResources(FACTORIES_RESOURCE_LOCATION) :
+```
+
+**案例**：HttpEncodingAutoConfiguration为例
+
+```java
+@Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(ServerProperties.class) // 启动指定类
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET) // @Conditional 根据不同条件，如果满足指定的条件，整个配置类里面的配置才会生效；ConditionalOnWebApplication配置当前应用是否是web应用，如果是，当前配置类生效
+@ConditionalOnClass(CharacterEncodingFilter.class) // 判断当前项目有没有这个类；乱码解决过滤器
+@ConditionalOnProperty(prefix = "server.servlet.encoding", value = "enabled", matchIfMissing = true)
+public class HttpEncodingAutoConfiguration {
+```
