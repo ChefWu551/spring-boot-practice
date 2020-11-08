@@ -1,4 +1,6 @@
-# ayspringboot学习笔记
+# springboot学习笔记
+
+资源文档： https://docs.spring.io/spring-boot/docs/2.3.2.RELEASE/reference
 
 ## 一、配置文件
 
@@ -200,3 +202,241 @@ private static Map<String, List<String>> loadSpringFactories(@Nullable ClassLoad
 @ConditionalOnProperty(prefix = "server.servlet.encoding", value = "enabled", matchIfMissing = true)
 public class HttpEncodingAutoConfiguration {
 ```
+
+## 二、日志
+
+springboot日志资源地址：https://docs.spring.io/spring-boot/docs/2.3.2.RELEASE/reference/htmlsingle/#boot-features-logging
+
+### 1. 日志框架
+
+| 日志门面(日志的抽象层)                | 日志实现                    |
+| ------------------------------------- | --------------------------- |
+| SLF4j(simple logging Facade for java) | Log4j, JUL, log4j2, Logback |
+|                                       |                             |
+|                                       |                             |
+
+日志门面（SLF4j）+日志实现(Logback):
+
+springboot: 底层是spring框架，spring框架默认使用JCL  ->  修改为slf4j+logback
+
+### 2. SLF4j使用
+
+资源地址：http://www.slf4j.org/manual.html
+
+#### 2.1. 如何在系统中使用SLF4j
+
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class HelloWorld {
+  public static void main(String[] args) {
+    Logger logger = LoggerFactory.getLogger(HelloWorld.class);
+    logger.info("Hello World");
+  }
+}
+```
+
+​	日志记录方法的调用，不应该直接调用日志的实现类，调用日志抽象层里面的方法
+
+
+
+图示
+
+![concrete-bindings](image\concrete-bindings.png)
+
+每一个日志的实现框架都有自己的配置文件，使用slf4j以后，**配置文件还是做成日志实现框架自己本身的配置文件**
+
+#### 2.2. 统一日志框架-slf4j
+
+资源地址：http://www.slf4j.org/legacy.html
+
+集成多个框架，每个框架都有自己的日志框架，需要统一使用统一使用一种框架来处理=》slf4j
+
+![legacy](image\legacy.png)
+
+**操作步骤：**
+
+==a. 排除原有的其他日志框架；==
+
+==b. 用中间包（jcl-over-slf4j.jar / log4j-over-slf4j / jul-to-slf4j.jar/ ...）来替换原有的日志框架==
+
+==c. 导入slf4j其他的实现==
+
+### 3. springboot-logging
+
+```xml
+<dependency>
+   <groupId>org.springframework.boot</groupId>
+   <artifactId>spring-boot-starter</artifactId>
+</dependency>
+```
+
+```xml
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-logging</artifactId>
+  <version>2.3.5.RELEASE</version>
+  <scope>compile</scope>
+</dependency>
+```
+
+logback-classic：使用logback记录日志
+
+jul-to-slf4j / log4j-to-slf4j : 把其他日志转为slf4j 的相关依赖，导入了日志抽象层
+
+![springboot-logging](image\springboot-logging.png)
+
+总结：
+
+​	a. springboot底层也是使用slf4j+logback的方式进行日志记录
+
+​	b. springboot也把其他的日志替换成了slf4j；
+
+​	c. 中间替换包
+
+![jul-to-slf4j](D:\codeProject\spring-boot-practice\image\jul-to-slf4j.png)
+
+​	d. 如果我们要引入其他框架，一定要把框架默认日志依赖移除掉，否则会出现依赖冲突(springboot 改写的和框架本来的)
+
+### 4. springboot-日志使用
+
+**配置日志及使用**：
+
+```properties
+logging.level.com.mountain=trace
+
+#logging.file.path=
+
+logging.file.name=logs/logging_${random.uuid}.txt
+# 控制台输出日志格式
+logging.pattern.console=
+# 指定文件中日志输出的格式
+logging.pattern.file=%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n
+```
+
+```java
+@SpringBootTest
+class LoggingApplicationTests {
+
+    Logger logger = LoggerFactory.getLogger(getClass());
+
+    @Test
+    void contextLoads() {
+        logger.trace("trace log;");
+        logger.debug("debug log");
+        logger.info("info");
+        logger.warn("warn log");
+        logger.error("error log");
+    }
+
+}
+```
+
+**springboot logback配置文件示例**
+
+![springboot-logback](image\springboot-logback.png)
+
+###   5. 自定义配置
+
+![springboot-logging-map](image\springboot-logging-map.png)
+
+logback-spring.xml: 日志框架就不直接加载日志的配置项，有springboot高级使用
+
+```xml
+<!-- 可指定对应的运行环境 -->
+
+<springProfile name="staging">
+    <!-- configuration to be enabled when the "staging" profile is active -->
+</springProfile>
+
+<springProfile name="dev | staging">
+    <!-- configuration to be enabled when the "dev" or "staging" profiles are active -->
+</springProfile>
+
+<springProfile name="!production">
+    <!-- configuration to be enabled when the "production" profile is not active -->
+</springProfile>
+```
+
+**logback.xml**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration  scan="true" scanPeriod="60 seconds" debug="false">
+    <contextName>spring-boot-logging</contextName>
+    <!--输出到控制台-->
+    <!--<appender name="console" class="ch.qos.logback.core.ConsoleAppender">-->
+        <!--<encoder>-->
+            <!--<pattern>%d{HH:mm:ss.SSS} %contextName [%thread] %-5level %logger{36} - %msg%n</pattern>-->
+        <!--</encoder>-->
+    <!--</appender>-->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %contextName [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <!--输出到文件-->
+    <appender name="FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/mylog.%d{yyyy-MM-dd}.log</fileNamePattern>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%relative [%thread] %level %logger - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="TRACE">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </root>
+
+    <logger name="com.mountain" level="TRACE"/>
+
+</configuration>
+```
+
+### 6. 日志切换（slf4j替换成log4j 或 切换成log4j2）
+
+![slf4j-to-log4j](image\slf4j-to-log4j.png)
+
+#### 6.1. 排除logback
+
+```xml
+<dependencies>
+   <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+      <exclusions>
+         <exclusion>
+            <artifactId>logback-classic</artifactId>
+            <groupId>ch.qos.logback</groupId>
+         </exclusion>
+         <exclusion>
+            <artifactId>log4j-to-slf4j</artifactId>
+            <groupId>org.apache.logging.log4j</groupId>
+         </exclusion>
+      </exclusions>
+   </dependency>
+</dependencies>
+```
+
+#### 6.2. 导入slf4j-log4j12依赖
+
+```xml
+<dependency>
+   <groupId>org.slf4j</groupId>
+   <artifactId>slf4j-log4j12</artifactId>
+</dependency>
+```
+
+![slf4j-log4j12](image\slf4j-log4j12.png)
+
+#### 6.3. 增加log4j配置文件 log4j.properties
+
+此时 配置文件将自动被框架识别！
+
+# 终、todo-list:
+
+1. 阅读springboot使用日志框架源码及理解配置原理

@@ -9,6 +9,7 @@
   <version>1.0.0-SNAPSHOT</version>
   <modules>
     <module>spring-boot-yaml</module>
+    <module>spring-boot-logging</module>
   </modules>
   <packaging>pom</packaging>
 
