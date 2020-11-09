@@ -437,6 +437,323 @@ logback-spring.xml: 日志框架就不直接加载日志的配置项，有spring
 
 此时 配置文件将自动被框架识别！
 
+## 三、web开发
+
+### 1. 自动配置
+
+xxxAutoConfiguration: 自动配置组件
+
+xxxProperties: 配置类来封装配置文件内容
+
+### 2. springboot对静态资源的映射规则
+
+#### 2.1. 以webjars引入资源
+
+资源连接：https://www.webjars.org/ 筛选对应前端组件的依赖
+
+```
+<dependency>
+   <groupId>org.webjars</groupId>
+   <artifactId>jquery</artifactId>
+   <version>3.5.1</version>
+</dependency>
+```
+
+
+
+**WebMvcAutoConfiguration**自动解析webjars的内容
+
+```java
+org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration
+```
+
+```java
+@Override
+public void addResourceHandlers(ResourceHandlerRegistry registry) {
+   if (!this.resourceProperties.isAddMappings()) {
+      logger.debug("Default resource handling disabled");
+      return;
+   }
+   Duration cachePeriod = this.resourceProperties.getCache().getPeriod();
+   CacheControl cacheControl = this.resourceProperties.getCache().getCachecontrol().toHttpCacheControl();
+   if (!registry.hasMappingForPattern("/webjars/**")) {
+      customizeResourceHandlerRegistration(registry.addResourceHandler("/webjars/**")
+            .addResourceLocations("classpath:/META-INF/resources/webjars/")
+            .setCachePeriod(getSeconds(cachePeriod)).setCacheControl(cacheControl));
+   }
+   String staticPathPattern = this.mvcProperties.getStaticPathPattern();
+   if (!registry.hasMappingForPattern(staticPathPattern)) {
+      customizeResourceHandlerRegistration(registry.addResourceHandler(staticPathPattern)
+            .addResourceLocations(getResourceLocations(this.resourceProperties.getStaticLocations()))
+            .setCachePeriod(getSeconds(cachePeriod)).setCacheControl(cacheControl));
+   }
+}
+```
+
+a. 所有的 /webjars.xxx,都去classpath:/META-INF/resources/webjars/找对应资源；
+
+webjars：以jar包的方式引入静态资源
+
+![webjars-jquery](image\webjars-jquery.png)
+
+=》http://127.0.0.1:8080/webjars/jquery/3.5.1/jquery.js 可访问对饮的资源文件
+
+#### 2.2. springboot默认静态资源映射
+
+```java
+@ConfigurationProperties(prefix = "spring.resources", ignoreUnknownFields = false)
+public class ResourceProperties {
+
+   private static final String[] CLASSPATH_RESOURCE_LOCATIONS = { "classpath:/META-INF/resources/",
+         "classpath:/resources/", "classpath:/static/", "classpath:/public/" };
+```
+
+### 3. 模板引擎
+
+#### 3.1. 引入thymeleaf
+
+资源地址：https://www.thymeleaf.org/documentation.html
+
+```xml
+<dependency>
+   <groupId>org.springframework.boot</groupId>
+   <artifactId>spring-boot-starter-thymeleaf</artifactId>
+</dependency>
+```
+
+**配置项：**
+
+```java
+@ConfigurationProperties(prefix = "spring.thymeleaf")
+public class ThymeleafProperties {
+
+   private static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
+
+   public static final String DEFAULT_PREFIX = "classpath:/templates/";
+
+   public static final String DEFAULT_SUFFIX = ".html";
+```
+
+
+
+### 4. SpringMvc自动配置
+
+资源地址：https://docs.spring.io/spring-boot/docs/2.3.2.RELEASE/reference/htmlsingle/#boot-features-spring-mvc （Spring MVC Auto-configuration）
+
+##### Spring MVC Auto-configuration
+
+Spring Boot provides auto-configuration for Spring MVC that works well with most applications.
+
+The auto-configuration adds the following features on top of Spring’s defaults:
+
+- Inclusion of `ContentNegotiatingViewResolver` and `BeanNameViewResolver` beans.
+
+  ```java
+  // WebMvcAutoConfiguration.java
+  @Bean
+  @ConditionalOnBean(ViewResolver.class)
+  @ConditionalOnMissingBean(name = "viewResolver", value = ContentNegotiatingViewResolver.class)
+  public ContentNegotiatingViewResolver viewResolver(BeanFactory beanFactory) {
+      ContentNegotiatingViewResolver resolver = new ContentNegotiatingViewResolver();
+      resolver.setContentNegotiationManager(beanFactory.getBean(ContentNegotiationManager.class));
+      // ContentNegotiatingViewResolver uses all the other view resolvers to locate
+      // a view so it should have a high precedence
+      resolver.setOrder(Ordered.HIGHEST_PRECEDENCE);
+      return resolver;
+  }
+  
+  // RequestAttributes.java
+  @Override
+  @Nullable
+  public View resolveViewName(String viewName, Locale locale) throws Exception {
+      RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
+      Assert.state(attrs instanceof ServletRequestAttributes, "No current ServletRequestAttributes");
+      List<MediaType> requestedMediaTypes = getMediaTypes(((ServletRequestAttributes) attrs).getRequest());
+      if (requestedMediaTypes != null) {
+          List<View> candidateViews = getCandidateViews(viewName, locale, requestedMediaTypes);
+          View bestView = getBestView(candidateViews, requestedMediaTypes, attrs);
+          if (bestView != null) {
+              return bestView;
+          }
+      }
+  ```
+
+  
+
+  - 自动配置ViewResolver试图解析器，根据方法的返回值得到视图对象，视图对象决定如何渲染
+
+  - ContentNegotiatingViewResolver：组合所有试图的解析器；
+
+  - ==**如何定制：**==可以给自己的容器中添加一个视图解析器，加载bean会自动生成！
+
+    自定义一个视图解析器：
+
+    ```java
+    @Configuration
+    public class MyViewResolver implements ViewResolver {
+    
+        @Override
+        public View resolveViewName(String viewName, Locale locale) throws Exception {
+            return null;
+        }
+    
+        @Bean(value = "myViewResolverPlus")
+        public ViewResolver myViewResolver(){
+            return new MyViewResolver();
+        }
+    }
+    ```
+
+    验证：
+
+    ![viewResolver-component](D:\codeProject\spring-boot-practice\image\viewResolver-component.png)
+
+- Support for serving static resources, including support for WebJars (covered [later in this document](https://docs.spring.io/spring-boot/docs/2.3.2.RELEASE/reference/htmlsingle/#boot-features-spring-mvc-static-content))).
+
+- Automatic registration of `Converter`, `GenericConverter`, and `Formatter` beans.
+
+- Support for `HttpMessageConverters` (covered [later in this document](https://docs.spring.io/spring-boot/docs/2.3.2.RELEASE/reference/htmlsingle/#boot-features-spring-mvc-message-converters)).
+
+- Automatic registration of `MessageCodesResolver` (covered [later in this document](https://docs.spring.io/spring-boot/docs/2.3.2.RELEASE/reference/htmlsingle/#boot-features-spring-message-codes)).
+
+- Static `index.html` support.
+
+- Custom `Favicon` support (covered [later in this document](https://docs.spring.io/spring-boot/docs/2.3.2.RELEASE/reference/htmlsingle/#boot-features-spring-mvc-favicon)).
+
+- Automatic use of a `ConfigurableWebBindingInitializer` bean (covered [later in this document](https://docs.spring.io/spring-boot/docs/2.3.2.RELEASE/reference/htmlsingle/#boot-features-spring-mvc-web-binding-initializer)).
+
+If you want to keep those Spring Boot MVC customizations and make more [MVC customizations](https://docs.spring.io/spring/docs/5.2.8.RELEASE/spring-framework-reference/web.html#mvc) (interceptors, formatters, view controllers, and other features), you can add your own `@Configuration` class of type `WebMvcConfigurer` but **without** `@EnableWebMvc`.
+
+If you want to provide custom instances of `RequestMappingHandlerMapping`, `RequestMappingHandlerAdapter`, or `ExceptionHandlerExceptionResolver`, and still keep the Spring Boot MVC customizations, you can declare a bean of type `WebMvcRegistrations` and use it to provide custom instances of those components.
+
+If you want to take complete control of Spring MVC, you can add your own `@Configuration` annotated with `@EnableWebMvc`, or alternatively add your own `@Configuration`-annotated `DelegatingWebMvcConfiguration` as described in the Javadoc of `@EnableWebMvc`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # 终、todo-list:
 
 1. 阅读springboot使用日志框架源码及理解配置原理
