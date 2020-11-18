@@ -1,10 +1,14 @@
 package com.mountain.webpractice.controller;
 
+import com.mountain.webpractice.config.HelloController;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@HelloController
 @RestController
-public class Hello {
+@Controller
+public class Hello{
 
     @RequestMapping("world")
     public String helloWorld() {

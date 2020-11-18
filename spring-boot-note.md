@@ -538,6 +538,8 @@ public class ThymeleafProperties {
 
 ### 4. SpringMvc自动配置
 
+**视频资源：**https://www.bilibili.com/video/BV1Et411Y7tQ?p=32
+
 资源地址：https://docs.spring.io/spring-boot/docs/2.3.2.RELEASE/reference/htmlsingle/#boot-features-spring-mvc （Spring MVC Auto-configuration）
 
 ##### Spring MVC Auto-configuration
@@ -624,11 +626,82 @@ The auto-configuration adds the following features on top of Spring’s defaults
 
 If you want to keep those Spring Boot MVC customizations and make more [MVC customizations](https://docs.spring.io/spring/docs/5.2.8.RELEASE/spring-framework-reference/web.html#mvc) (interceptors, formatters, view controllers, and other features), you can add your own `@Configuration` class of type `WebMvcConfigurer` but **without** `@EnableWebMvc`.
 
+扩展springmvc配置
+
+```java
+@Configuration
+public class MyMvcConfig implements WebMvcConfigurer {
+
+    // 重定向请求操作
+    @Override
+    public void addViewControllers(ViewControllerRegistry registration) {
+        registration.addViewController("/hello").setViewName("redirect");
+    }
+
+    @Override
+    public void configurePathMatch(PathMatchConfigurer configurer) {
+        configurer.addPathPrefix("prefix", c->c.isAnnotationPresent(HelloController.class));
+    }
+}
+```
+
+​	1）、WebMvcAutoConfiguration是SpringMVC的自动配置类
+
+​	2）、在做其他自动配置时会导入：@Import(EnableWebMvcConfiguration.class)
+
+```
+@Configuration(proxyBeanMethods = false)
+@Import(EnableWebMvcConfiguration.class)
+@EnableConfigurationProperties({ WebMvcProperties.class, ResourceProperties.class })
+@Order(0)
+public static class WebMvcAutoConfigurationAdapter implements WebMvcConfigurer {
+```
+
+​	3）、容器中所有的webmvcConfigure都会一起起作用
+
+​	4）、我们配置的类也会被调用
+
 If you want to provide custom instances of `RequestMappingHandlerMapping`, `RequestMappingHandlerAdapter`, or `ExceptionHandlerExceptionResolver`, and still keep the Spring Boot MVC customizations, you can declare a bean of type `WebMvcRegistrations` and use it to provide custom instances of those components.
 
 If you want to take complete control of Spring MVC, you can add your own `@Configuration` annotated with `@EnableWebMvc`, or alternatively add your own `@Configuration`-annotated `DelegatingWebMvcConfiguration` as described in the Javadoc of `@EnableWebMvc`.
 
 
+
+32讲
+
+1. 补充@EnableMvc注解导致全局mvc自动配置失效的原理
+
+   33讲
+
+2. 添加一个拦截器，让相关请求重定向一个界面，通过重写WebMvcConfigurer（)方法，默认访问首页
+
+3. 通过引用bootstrap的css文件和js文件达到样式控制的效果
+
+   34讲
+
+4. bundle resource 通过 重新设置基础资源包 引入中英两种动态修改页面，根据浏览器语言切换对应语言显示。
+
+5. 鼠标点击动态切换语言
+
+6. 登录成功跳转登录成功界面，失败则登录页提示登录失败
+
+7. 拦截器进行登录检查
+
+8. 
+
+
+
+### 5. 错误处理机制
+
+##### 	1）.如何定制错误响应
+
+​	ErrorMvcAutoConfiguration:错误处理的自动配置
+
+​	给容器中添加以下组件：
+
+	1. DefaultErrorAtrributes
+ 	2. BasicErrorAttributes
+ 	3. 
 
 
 
