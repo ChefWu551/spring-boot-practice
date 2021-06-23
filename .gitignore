@@ -1,2 +1,6 @@
 .idea/
 spring-boot-yaml/.mvn/
+spring-boot-nacos-discovery/nacos-provider/nacos-provider.iml
+spring-boot-nacos-serviceA/target/
+*.iml
+*.class
