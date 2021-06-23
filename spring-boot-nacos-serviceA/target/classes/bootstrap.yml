@@ -1,0 +1,11 @@
+#spring:
+#  application:
+##    name: serviceA
+#    name: example
+#  cloud:
+#    nacos:
+#      config:
+#        server-addr: 127.0.0.1:8848
+#        file-extension: properties #    dataId: serviceA
+##        namespace: b06c247b-9df3-4d9b-8270-6638c0766d71
+##        group: test

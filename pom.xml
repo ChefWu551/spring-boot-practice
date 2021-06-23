@@ -11,6 +11,8 @@
     <module>spring-boot-yaml</module>
     <module>spring-boot-logging</module>
     <module>spring-boot-web-practice</module>
+    <module>spring-boot-nacos-serviceA</module>
+      <module>spring-boot-nacos-discovery</module>
   </modules>
   <packaging>pom</packaging>
 
@@ -49,6 +51,13 @@
       <artifactId>spring-boot-starter-web</artifactId>
       <version>${spring.boot.version}</version>
     </dependency>
+
+    <!--nacos客户端以获取配置中心的配置-->
+    <!--<dependency>-->
+      <!--<groupId>com.alibaba.nacos</groupId>-->
+      <!--<artifactId>nacos-client</artifactId>-->
+      <!--<version>1.2.0</version>-->
+    <!--</dependency>-->
 
   </dependencies>
 </project>
